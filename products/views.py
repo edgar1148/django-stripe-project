@@ -1,20 +1,22 @@
 import stripe
+
 from django.conf import settings
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.views.generic import TemplateView
+from django.http.response import JsonResponse
 from rest_framework import generics
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.renderers import TemplateHTMLRenderer
-from django.shortcuts import get_object_or_404
-from django.http.response import JsonResponse
-from rest_framework.views import APIView
 
 from .models import Item
 from .serializers import ItemSerializer
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
+
 class ItemListView(generics.ListAPIView):
+    """Список продуктов"""
     renderer_classes = [TemplateHTMLRenderer]
     template_name = 'products/product_list.html'
     serializer_class = ItemSerializer
@@ -24,6 +26,7 @@ class ItemListView(generics.ListAPIView):
         return Response({'products': queryset})
 
 class ItemDetailView(generics.RetrieveAPIView):
+    """Подробная информация о продукте"""
     template_name = 'products/product_detail.html'
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
@@ -37,10 +40,11 @@ class ItemDetailView(generics.RetrieveAPIView):
 
 class CreateStripeCheckoutSessionView(APIView):
     """
-    Create a checkout session and redirect the user to Stripe's checkout page
+    Создание checkout сессии.
     """
-    
+
     def get(self, request, *args, **kwargs):
+        "GET запрос для создания сессии"
         price = Item.objects.get(id=self.kwargs["pk"])
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=["card"],
@@ -67,6 +71,7 @@ class CreateStripeCheckoutSessionView(APIView):
         )
 
     def post(self, request, *args, **kwargs):
+        "POST запрос для создания сессии"
         price = Item.objects.get(id=self.kwargs["pk"])
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=["card"],
@@ -92,8 +97,11 @@ class CreateStripeCheckoutSessionView(APIView):
 
 
 class SuccessView(TemplateView):
+    """Страница успешного платежа."""
     template_name = 'products/success.html'
 
 
 class CancelView(TemplateView):
+    """Страница отмены платежа.
+    Пока не реализована проверка статуса платежа."""
     template_name = 'products/cancel.html'

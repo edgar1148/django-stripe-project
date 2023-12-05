@@ -5,10 +5,11 @@ from .views import (
     ItemListView,
     CreateStripeCheckoutSessionView,
     CancelView,
-    SuccessView
+    SuccessView,
 )
 
 app_name = 'products'
+
 
 urlpatterns = [
     path('', ItemListView.as_view(), name='product-list'),
