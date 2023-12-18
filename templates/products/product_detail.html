@@ -9,15 +9,26 @@
       <p class="card-text">{{product.description}}</p>
       <div class="card-text">
         <h5 class="card-text">${{ product.price }}</h5>
-        <form
-          action="{% url 'products:create-checkout-session' product.id %}"
-          method="POST"
-        >
           {% csrf_token %}
-          <button type="submit" class="btn btn-primary">Buy</button>
-        </form>
+          <button type="submit" class="btn btn-primary" id="buy-button">Buy</button>
       </div>
     </div>
   </div>
 </div>
+
+<script type="text/javascript">
+  fetch("{% url 'products:config' %}")
+  .then((result) => { return result.json(); })
+  .then((data) => {
+      const stripe = Stripe(data.publicKey);
+      var buyButton = document.getElementById('buy-button')
+      buyButton.addEventListener("click", () => {
+          fetch("{% url 'products:create-checkout-session' product.id %}", {method: 'GET'})
+          .then((result) => { return result.json(); })
+          .then((data) => {
+              return stripe.redirectToCheckout({sessionId: data.sessionId})
+      })
+  });
+});
+</script>
 {% endblock content %}

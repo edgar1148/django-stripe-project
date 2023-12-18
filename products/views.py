@@ -79,33 +79,9 @@ class CreateStripeCheckoutSessionView(APIView):
             cancel_url=settings.PAYMENT_CANCEL_URL,
         )
         return JsonResponse(
-            {"id": checkout_session.id}
+            {'sessionId': checkout_session.id}
         )
 
-    def post(self, request, *args, **kwargs):
-        "POST запрос для создания сессии"
-        price = Item.objects.get(id=self.kwargs["pk"])
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[
-                {
-                    "price_data": {
-                        "currency": "usd",
-                        "unit_amount": int(price.price) * 100,
-                        "product_data": {
-                            "name": price.name,
-                            "description": price.description,
-                        },
-                    },
-                    "quantity": 1,
-                }
-            ],
-            metadata={"product_id": price.id},
-            mode="payment",
-            success_url=settings.PAYMENT_SUCCESS_URL,
-            cancel_url=settings.PAYMENT_CANCEL_URL,
-        )
-        return redirect(checkout_session.url)
 
 
 class SuccessView(TemplateView):
