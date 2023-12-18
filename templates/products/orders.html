@@ -1,0 +1,42 @@
+{% extends "base.html" %} 
+{% block title %} Orders {% endblock title%}
+<script src="https://js.stripe.com/v3/"></script>
+
+<script defer src="https://use.fontawesome.com/releases/v6.4.0/js/all.js"></script>
+{% block content %} 
+
+{% for order in orders %}
+<div class="card" style="width: 18rem">
+  <div class="card-body">
+    <h5 class="card-title">{{order.user}}</h5>
+    <p class="card-text">{{order.get_total_price}}</p>
+          
+          <button class="btn btn-primary" id="buy-button">Buy</button>
+  </div>
+</div>
+
+<script type="text/javascript">
+  fetch("{% url 'products:config' %}")
+  .then((result) => { return result.json(); })
+  .then((data) => {
+      const stripe = Stripe(data.publicKey);
+      var buyButton = document.getElementById('buy-button')
+      buyButton.addEventListener("click", () => {
+          fetch("{% url 'products:order-payment' order.id %}", {method: 'GET'})
+          .then((result) => { return result.json(); })
+          .then((data) => {
+              return stripe.redirectToCheckout({sessionId: data.sessionId})
+      })
+  });
+});
+</script>
+
+{% endfor %} 
+
+
+
+
+
+
+
+{% endblock content %}

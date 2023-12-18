@@ -1,18 +1,30 @@
 import stripe
+from decimal import Decimal
 
 from django.conf import settings
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404, render
 from django.views.generic import TemplateView
 from django.http.response import JsonResponse
 from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.renderers import TemplateHTMLRenderer
+from django.urls import reverse
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.views.decorators.csrf import csrf_exempt
 
-from .models import Item
+from .models import Item, Order, OrderItem
 from .serializers import ItemSerializer
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+@csrf_exempt
+def stripe_config(request):
+    if request.method == 'GET':
+        stripe_config = {'publicKey': settings.STRIPE_PUBLISHABLE_KEY}
+        return JsonResponse(stripe_config, safe=False)
 
 
 class ItemListView(generics.ListAPIView):
@@ -105,3 +117,49 @@ class CancelView(TemplateView):
     """Страница отмены платежа.
     Пока не реализована проверка статуса платежа."""
     template_name = 'products/cancel.html'
+
+
+
+
+def orders(request):
+    """Список заказов"""
+    orders = Order.objects.all()
+    return render(request, 'products/orders.html', {'orders': orders})
+
+@api_view(['GET', 'POST'])
+def order_payment(request, pk):
+    """Оплата заказа"""
+    order = Order.objects.get(id=pk)
+    total_price = order.get_total_price()
+
+    checkout_session = stripe.checkout.Session.create(
+        payment_method_types=["card"],
+        line_items=[
+            {
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": int(total_price * Decimal(100)),
+                    "product_data": {
+                        "name": order.id,
+                    },
+                },
+                "quantity": 1,
+            }
+        ],
+        metadata={"product_id": order.id},
+        mode="payment",
+        success_url=settings.PAYMENT_SUCCESS_URL,
+        cancel_url=settings.PAYMENT_CANCEL_URL,
+        )
+    return JsonResponse({'sessionId': checkout_session.id})
+    
+    #return redirect(checkout_session.url)
+        
+    
+    
+    
+
+ 
+ 
+
+
