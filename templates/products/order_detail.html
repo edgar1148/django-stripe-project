@@ -1,0 +1,37 @@
+{% extends "base.html" %} 
+{% block title %} Pay Order {% endblock title%} 
+{% block script %} <script src="https://js.stripe.com/v3/"></script> {% endblock script%}
+{% block content %}
+<div class="card-deck">
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title">{{order.user}}</h5>
+      <p class="card-text">{{order.created}}</p>
+      <p class="card-text">{{order.discount}}</p>
+      <p class="card-text">{{order.tax}}</p>
+      <div class="card-text">
+        <h5 class="card-text">${{ order.get_total_price }}</h5>
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary" id="buy-button">Buy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+  fetch("{% url 'products:config' %}")
+  .then((result) => { return result.json(); })
+  .then((data) => {
+      const stripe = Stripe(data.publicKey);
+      var buyButton = document.getElementById('buy-button')
+      buyButton.addEventListener("click", () => {
+          fetch("{% url 'products:order-payment' order.id %}", {method: 'GET'})
+          .then((result) => { return result.json(); })
+          .then((data) => {
+              return stripe.redirectToCheckout({sessionId: data.sessionId})
+      })
+  });
+});
+</script>
+
+{% endblock content %}

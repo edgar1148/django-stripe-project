@@ -5,56 +5,46 @@ from django.conf import settings
 from django.shortcuts import redirect, get_object_or_404, render
 from django.views.generic import TemplateView
 from django.http.response import JsonResponse
-from rest_framework import generics
 from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.renderers import TemplateHTMLRenderer
 from django.urls import reverse
 from rest_framework.decorators import api_view
-from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import Item, Order, OrderItem
-from .serializers import ItemSerializer
+from .models import Item, Order
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 @csrf_exempt
 def stripe_config(request):
+    """Получение ключа stripe"""
     if request.method == 'GET':
         stripe_config = {'publicKey': settings.STRIPE_PUBLISHABLE_KEY}
         return JsonResponse(stripe_config, safe=False)
 
 
-class ItemListView(generics.ListAPIView):
-    """Список продуктов"""
-    renderer_classes = [TemplateHTMLRenderer]
-    template_name = 'products/product_list.html'
-    serializer_class = ItemSerializer
+def items_list_view(request):
+    """Вывод списка продуктов"""
+    products = Item.objects.all()
+    return render(request, 'products/product_list.html', {'products': products})
 
-    def get(self, request, *args, **kwargs):
-        queryset = Item.objects.all()
-        return Response({'products': queryset})
 
-class ItemDetailView(generics.RetrieveAPIView):
+def items_detail_view(request, pk):
     """Подробная информация о продукте"""
-    template_name = 'products/product_detail.html'
-    queryset = Item.objects.all()
-    serializer_class = ItemSerializer
-    renderer_classes = [TemplateHTMLRenderer]
+    product = get_object_or_404(Item, pk=pk)
+    return render(request, 'products/product_detail.html', {'product': product})
 
-    def get(self, request, pk):
-        product = get_object_or_404(Item, pk=pk)
-        serializer = ItemSerializer(product)
-        return Response({'serializer': serializer, 'product': product})
+
+def order_detail_view(request, pk):
+    """Подробная информация о заказе"""
+    order = get_object_or_404(Order, pk=pk)
+    return render(request, 'products/order_detail.html', {'order': order})
 
 
 class CreateStripeCheckoutSessionView(APIView):
     """
     Создание checkout сессии.
     """
-
     def get(self, request, *args, **kwargs):
         "GET запрос для создания сессии"
         price = Item.objects.get(id=self.kwargs["pk"])
@@ -83,7 +73,6 @@ class CreateStripeCheckoutSessionView(APIView):
         )
 
 
-
 class SuccessView(TemplateView):
     """Страница успешного платежа."""
     template_name = 'products/success.html'
@@ -95,12 +84,11 @@ class CancelView(TemplateView):
     template_name = 'products/cancel.html'
 
 
-
-
 def orders(request):
     """Список заказов"""
     orders = Order.objects.all()
     return render(request, 'products/orders.html', {'orders': orders})
+
 
 @api_view(['GET', 'POST'])
 def order_payment(request, pk):
@@ -130,12 +118,3 @@ def order_payment(request, pk):
     return JsonResponse({'sessionId': checkout_session.id})
     
     #return redirect(checkout_session.url)
-        
-    
-    
-    
-
- 
- 
-
-
